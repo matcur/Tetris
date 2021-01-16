@@ -31,7 +31,7 @@ namespace Tetris
             { Key.Right, TetrisFigureMove.Right },
         };
 
-        private TetrisFigure firstFigure = TetrisFigure.CreateRandom();
+        private TetrisFigure firstFigure = TetrisFigure.CreateStraight();
 
         public MainWindow()
         {
@@ -56,6 +56,12 @@ namespace Tetris
 
         private void StartGame(object sender, RoutedEventArgs e)
         {
+            playGrid.Start();
+        }
+
+        private void ClearPlayGrid(object sender, RoutedEventArgs e)
+        {
+            playGrid.Refresh();
             playGrid.Start();
         }
     }

@@ -40,11 +40,17 @@
             <userControllers:PlayInfo
                 x:Name="playInfo"
                 VerticalAlignment="Top"/>
-            <Button 
-                Grid.Row="1"
-                Height="40" Width="60"
-                Click="StartGame"
-                Content="Запустить игру"/>
+            <StackPanel
+                Grid.Row="1">
+                <Button 
+                    Height="40" Width="60"
+                    Click="StartGame"
+                    Content="Запустить игру"/>
+                <Button
+                    Height="40" Width="60"
+                    Click="ClearPlayGrid"
+                    Content="Запустить новую игру"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>

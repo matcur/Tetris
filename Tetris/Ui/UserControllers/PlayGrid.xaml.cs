@@ -45,6 +45,8 @@ namespace Tetris.Ui.UserControllers
 
         private TetrisFigure nextFigure;
 
+        private Timer timer = new Timer(100);
+
         public PlayGrid()
         {
             InitializeComponent();
@@ -56,20 +58,30 @@ namespace Tetris.Ui.UserControllers
             };
             TetrisGrid.FigureAdded += delegate
             {
-                NextFigure = TetrisFigure.CreateRandom();
+                NextFigure = TetrisFigure.CreateStraight();
+            };
+            timer.Elapsed += delegate
+            {
+                Dispatcher.Invoke(() => TetrisGrid.ToNextTick());
             };
         }
 
         public void Start()
         {
-            var timer = new Timer(150);
-            timer.Elapsed += delegate
-            {
-                Dispatcher.Invoke(() => TetrisGrid.ToNextTick());
-            };
             timer.Enabled = true;
 
             Dispatcher.Invoke(() => TetrisGrid.AddFigure(NextFigure));
+        }
+
+        public void Stop()
+        {
+            timer.Enabled = false;
+        }
+
+        public void Refresh()
+        {
+            Stop();
+            TetrisGrid.Clear();
         }
     }
 }

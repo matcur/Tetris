@@ -29,7 +29,7 @@ namespace Tetris.Ui.UserControllers
                 nextFigure.MoveLeft();
                 nextFigure.MoveLeft();
                 nextFigure.MoveLeft();
-                tetrisGrid.ClearCeils();
+                tetrisGrid.Clear();
                 tetrisGrid.AddFigure(nextFigure);
                 tetrisGrid.RedrawFigures();
             }

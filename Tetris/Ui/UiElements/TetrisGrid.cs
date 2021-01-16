@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using Tetris.Core;
+using Tetris.Exceptions.Ceils;
 using Tetris.Ui.Models;
 
 namespace Tetris.Ui.UiElements
@@ -15,8 +16,6 @@ namespace Tetris.Ui.UiElements
         public event Action FigureFallen = delegate { };
 
         public event Action FigureAdded = delegate { };
-
-        public TetrisFigure FallingFigure => fallingFigure;
 
         public IReadOnlyDictionary<TetrisFigureMove, Predicate<TetrisFigure>> PossibleFigureMoves
         {
@@ -28,13 +27,17 @@ namespace Tetris.Ui.UiElements
             };
         }
 
+        public IReadOnlyList<Ceil> AllFigureCeils => fallenFigures.SelectMany(f => f.Ceils).ToList();
+
+        public TetrisFigure FallingFigure => fallingFigure;
+
         public int RowCount { get; }
 
         public int ColumnCount { get; }
         
         public int CeilSize { get; }
 
-        private ObservableCollection<TetrisFigure> fallenFigures = new ObservableCollection<TetrisFigure>();
+        private List<TetrisFigure> fallenFigures = new List<TetrisFigure>();
 
         private TetrisFigure fallingFigure;
 
@@ -48,7 +51,12 @@ namespace Tetris.Ui.UiElements
 
             InitializeColumns();
             InitializeRows();
-            AddCeils(Ceil.CreateMany(rowCount, columnCount));
+            InitializeBackground();
+
+            FigureFallen += delegate
+            {
+                RemoveFulledRows();
+            };
         }
 
         public void AddFigure(TetrisFigure figure)
@@ -83,13 +91,14 @@ namespace Tetris.Ui.UiElements
             }
         }
 
-        public void ClearCeils()
+        public void Clear()
         {
             var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
             if (fallingFigure != null)
                 ceils.AddRange(fallingFigure.Ceils);
 
             ceils.ForEach(c => Children.Remove(c));
+            fallenFigures.Clear();
         }
 
         public bool CanFigureMoveRight(TetrisFigure figure)
@@ -97,11 +106,10 @@ namespace Tetris.Ui.UiElements
             if (figure.Ceils.Any(ceil => ceil.Column == ColumnCount - 1))
                 return false;
 
-            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
             foreach (var ceil in figure.Ceils)
             {
-                if (ceils.Any(c => c.IsOnSameRow(ceil) &&
-                                   c.IsInPrevColumn(ceil)))
+                if (AllFigureCeils.Any(c => c.IsOnSameRow(ceil) &&
+                                            c.IsInPrevColumn(ceil)))
                     return false;
             }
 
@@ -113,11 +121,10 @@ namespace Tetris.Ui.UiElements
             if (figure.Ceils.Any(ceil => ceil.Column == 0))
                 return false;
 
-            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
             foreach (var ceil in figure.Ceils)
             {
-                if (ceils.Any(c => c.IsOnSameRow(ceil) &&
-                                   c.IsInNextColumn(ceil)))
+                if (AllFigureCeils.Any(c => c.IsOnSameRow(ceil) &&
+                                            c.IsInNextColumn(ceil)))
                     return false;
             }
 
@@ -129,10 +136,9 @@ namespace Tetris.Ui.UiElements
             if (figure.Ceils.Where(ceil => ceil.Row == RowCount - 1).Any())
                 return false;
 
-            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
             foreach (var ceil in figure.Ceils)
             {
-                if (ceils.Any(c => c.IsInSameColumn(ceil) &&
+                if (AllFigureCeils.Any(c => c.IsInSameColumn(ceil) &&
                                    c.IsOnPrevRow(ceil)))
                     return false;
             }
@@ -149,6 +155,86 @@ namespace Tetris.Ui.UiElements
         {
             if (CanFigureMoveTo(figure, move))
                 figure.MoveTo(move);
+        }
+
+        private void AddCeils(IEnumerable<Ceil> ceils, int zIndex = 1)
+        {
+            foreach (var ceil in ceils)
+            {
+                SetColumn(ceil, ceil.Column);
+                SetRow(ceil, ceil.Row);
+                SetZIndex(ceil, zIndex);
+                Children.Add(ceil);
+            }
+        }
+
+        private void RemoveFulledRows()
+        {
+            var fulledRows = GetFulledRows();
+            foreach (var ceil in AllFigureCeils)
+            {
+                if (fulledRows.Contains(ceil.Row))
+                {
+                    var figure = FindFigureByCeil(ceil);
+                    figure.RemoveCeil(ceil);
+                    Children.Remove(ceil);
+                }
+            }
+        }
+
+        private List<int> GetFulledRows()
+        {
+            var fulledRows = new List<int>();
+            var ceilsPerRows = new Dictionary<int, int>();
+            foreach (var ceil in AllFigureCeils)
+            {
+                var row = ceil.Row;
+                if (ceilsPerRows.ContainsKey(row))
+                    ceilsPerRows[row]++;
+                else
+                    ceilsPerRows[row] = 1;
+            }
+
+            foreach (var row in ceilsPerRows.Keys)
+            {
+                if (ceilsPerRows[row] == ColumnCount)
+                    fulledRows.Add(row);
+            }
+
+            return fulledRows;
+        }
+
+        private TetrisFigure FindFigureByCeil(Ceil ceil)
+        {
+            foreach (var figure in fallenFigures)
+            {
+                if (figure.Ceils.Contains(ceil))
+                    return figure;
+            }
+
+            throw new CeilNotFoundException(ceil);
+        }
+
+        private void RemoveEmptyFigures()
+        {
+            foreach (var figure in fallenFigures)
+            {
+                if (figure.Ceils.Count() == 0)
+                    fallenFigures.Remove(figure);
+            }
+        }
+
+        private void MoveFallingFigure()
+        {
+            if (CanFigureMoveDown(fallingFigure))
+            {
+                fallingFigure.MoveDown();
+            }
+            else
+            {
+                fallenFigures.Add(fallingFigure);
+                FigureFallen.Invoke();
+            }
         }
 
         private void InitializeColumns()
@@ -169,28 +255,9 @@ namespace Tetris.Ui.UiElements
             }
         }
 
-        private void AddCeils(IEnumerable<Ceil> ceils, int zIndex = 1)
+        private void InitializeBackground()
         {
-            foreach (var ceil in ceils)
-            {
-                SetColumn(ceil, ceil.Column);
-                SetRow(ceil, ceil.Row);
-                SetZIndex(ceil, zIndex);
-                Children.Add(ceil);
-            }
-        }
-
-        private void MoveFallingFigure()
-        {
-            if (CanFigureMoveDown(fallingFigure))
-            {
-                fallingFigure.MoveDown();
-            }
-            else
-            {
-                fallenFigures.Add(fallingFigure);
-                FigureFallen.Invoke();
-            }
+            AddCeils(Ceil.CreateMany(RowCount, ColumnCount));
         }
     }
 }

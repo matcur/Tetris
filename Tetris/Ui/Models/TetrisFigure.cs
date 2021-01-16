@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Media;
 using Tetris.Core;
+using Tetris.Exceptions.Ceils;
 using Tetris.Extensions;
 using Tetris.Ui.UiElements;
 using Tetris.Ui.UserControllers;
@@ -143,6 +144,12 @@ namespace Tetris.Ui.Models
         public void MoveLeft()
         {
             ceils.ForEach(ceil => ceil.Column--);
+        }
+
+        public void RemoveCeil(Ceil ceil)
+        {
+            if (!ceils.Remove(ceil))
+                throw new CeilNotFoundException(ceil);
         }
 
         public void MoveTo(TetrisFigureMove move)

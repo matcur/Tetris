@@ -16,10 +16,6 @@ namespace Tetris.Ui.UiElements
 
         public Ceil() { }
 
-        public Ceil(Ceil ceil)
-        {
-        }
-
         public static Ceil Create(int row, int column, Color background)
         {
             var ceil = Create(background);
