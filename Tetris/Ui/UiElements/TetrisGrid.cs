@@ -94,16 +94,32 @@ namespace Tetris.Ui.UiElements
 
         public bool CanFigureMoveRight(TetrisFigure figure)
         {
-            if (figure.Ceils.Where(ceil => ceil.Column == ColumnCount - 1).Any())
+            if (figure.Ceils.Any(ceil => ceil.Column == ColumnCount - 1))
                 return false;
+
+            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
+            foreach (var ceil in figure.Ceils)
+            {
+                if (ceils.Any(c => c.IsOnSameRow(ceil) &&
+                                   c.IsInPrevColumn(ceil)))
+                    return false;
+            }
 
             return true;
         }
 
         public bool CanFigureMoveLeft(TetrisFigure figure)
         {
-            if (figure.Ceils.Where(ceil => ceil.Column == 0).Any())
+            if (figure.Ceils.Any(ceil => ceil.Column == 0))
                 return false;
+
+            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
+            foreach (var ceil in figure.Ceils)
+            {
+                if (ceils.Any(c => c.IsOnSameRow(ceil) &&
+                                   c.IsInNextColumn(ceil)))
+                    return false;
+            }
 
             return true;
         }
@@ -113,11 +129,11 @@ namespace Tetris.Ui.UiElements
             if (figure.Ceils.Where(ceil => ceil.Row == RowCount - 1).Any())
                 return false;
 
-            var ceils = fallenFigures.SelectMany(figure => figure.Ceils).ToList();
-            var underCeils = ceils.Where(ceil => figure.HasCeilInColumn(ceil));
+            var ceils = fallenFigures.SelectMany(f => f.Ceils).ToList();
             foreach (var ceil in figure.Ceils)
             {
-                if (underCeils.Any(c => c.Column == ceil.Column && c.Row == ceil.Row + 1))
+                if (ceils.Any(c => c.IsInSameColumn(ceil) &&
+                                   c.IsOnPrevRow(ceil)))
                     return false;
             }
 

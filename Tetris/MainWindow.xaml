@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Tetris"
         xmlns:userControllers="clr-namespace:Tetris.Ui.UserControllers"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="400"
+        Title="MainWindow" Height="450" Width="450"
         Background="WhiteSmoke"
         KeyDown="MoveFallingFigure">
     <Grid>
@@ -38,7 +38,8 @@
             </Grid.RowDefinitions>
 
             <userControllers:PlayInfo
-                x:Name="playInfo"/>
+                x:Name="playInfo"
+                VerticalAlignment="Top"/>
             <Button 
                 Grid.Row="1"
                 Height="40" Width="60"

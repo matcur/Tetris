@@ -65,6 +65,36 @@ namespace Tetris.Ui.UiElements
             return ceils;
         }
 
+        public bool IsOnPrevRow(Ceil ceil)
+        {
+            return ceil.Row == Row - 1;
+        }
+
+        public bool IsOnSameRow(Ceil ceil)
+        {
+            return ceil.Row == Row;
+        }
+
+        public bool IsOnNextRow(Ceil ceil)
+        {
+            return ceil.Row == Row + 1;
+        }
+
+        public bool IsInPrevColumn(Ceil ceil)
+        {
+            return ceil.Column == Column - 1;
+        }
+
+        public bool IsInSameColumn(Ceil ceil)
+        {
+            return ceil.Column == Column;
+        }
+
+        public bool IsInNextColumn(Ceil ceil)
+        {
+            return ceil.Column == Column + 1;
+        }
+
         public Ceil Clone()
         {
             var ceil = new Ceil();
