@@ -31,7 +31,7 @@ namespace Tetris
             { Key.Right, TetrisFigureMove.Right },
         };
 
-        private TetrisFigure firstFigure = TetrisFigure.CreateStraight();
+        private TetrisFigure firstFigure = TetrisFigure.CreateRandom();
 
         public MainWindow()
         {
@@ -44,14 +44,15 @@ namespace Tetris
 
         private void MoveFallingFigure(object sender, KeyEventArgs e)
         {
+            var tetrisGrid = playGrid.TetrisGrid;
+            var fallinFigure = tetrisGrid.FallingFigure;
+
             var key = e.Key;
             if (figureMoves.ContainsKey(key))
-            {
-                var tetrisGrid = playGrid.TetrisGrid;
-                var fallinFigure = tetrisGrid.FallingFigure;
-
                 tetrisGrid.TryMoveFigureTo(fallinFigure, figureMoves[key]);
-            }
+
+            if (key == Key.R)
+                tetrisGrid.RotateFigureRight(fallinFigure);
         }
 
         private void StartGame(object sender, RoutedEventArgs e)

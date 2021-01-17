@@ -58,7 +58,7 @@ namespace Tetris.Ui.UserControllers
             };
             TetrisGrid.FigureAdded += delegate
             {
-                NextFigure = TetrisFigure.CreateStraight();
+                NextFigure = TetrisFigure.CreateRandom();
             };
             timer.Elapsed += delegate
             {

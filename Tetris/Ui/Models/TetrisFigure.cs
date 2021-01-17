@@ -20,15 +20,23 @@ namespace Tetris.Ui.Models
 
         private IReadOnlyDictionary<TetrisFigureMove, Action> movesTo;
 
-        private ObservableCollection<Ceil> ceils = new ObservableCollection<Ceil>();
-
         private static List<Func<TetrisFigure>> creators = new List<Func<TetrisFigure>>
         {
-            () => CreateL(),
-            () => CreateT(),
-            () => CreateStraight(),
-            () => CreateSquare(),
-            () => CreateSkew(),
+            CreateL,
+            CreateT,
+            CreateStraight,
+            CreateSquare,
+            CreateSkew,
+        };
+
+        private List<Ceil> ceils = new List<Ceil>();
+
+        private List<int> plot = new List<int>
+        {
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
         };
 
         public TetrisFigure()
@@ -41,12 +49,12 @@ namespace Tetris.Ui.Models
             };
         }
 
-        public TetrisFigure(IEnumerable<Ceil> enumerable) : this()
+        public TetrisFigure(IEnumerable<Ceil> enumerable): this()
         {
             ceils.AddRange(enumerable);
         }
 
-        public TetrisFigure(params Ceil[] ceils) : this()
+        public TetrisFigure(params Ceil[] ceils): this()
         {
             this.ceils.AddRange(ceils);
         }
@@ -129,6 +137,30 @@ namespace Tetris.Ui.Models
                 newCeils.Add(ceil.Clone());
 
             return new TetrisFigure(newCeils);
+        }
+
+        public int GetTopRow()
+        {
+            var topCeil = ceils.First();
+            foreach (var ceil in ceils)
+            {
+                if (ceil.Row < topCeil.Row)
+                    topCeil = ceil;
+            }
+
+            return topCeil.Row;
+        }
+
+        public int GetLeftColumn()
+        {
+            var leftCeil = ceils.First();
+            foreach (var ceil in ceils)
+            {
+                if (ceil.Column < leftCeil.Column)
+                    leftCeil = ceil;
+            }
+
+            return leftCeil.Column;
         }
 
         public void MoveRight()

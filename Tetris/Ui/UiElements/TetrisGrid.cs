@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Tetris.Core;
 using Tetris.Exceptions.Ceils;
+using Tetris.Extensions;
 using Tetris.Ui.Models;
 
 namespace Tetris.Ui.UiElements
@@ -39,6 +40,8 @@ namespace Tetris.Ui.UiElements
 
         private List<TetrisFigure> fallenFigures = new List<TetrisFigure>();
 
+        private List<int> rows;
+
         private TetrisFigure fallingFigure;
 
         public TetrisGrid(int rowCount, int columnCount, int ceilSize)
@@ -48,15 +51,13 @@ namespace Tetris.Ui.UiElements
             CeilSize = ceilSize;
             MaxWidth = columnCount * ceilSize;
             MaxHeight = rowCount * ceilSize;
+            rows = Enumerable.Range(0, rowCount).ToList();
 
             InitializeColumns();
             InitializeRows();
             InitializeBackground();
 
-            FigureFallen += delegate
-            {
-                RemoveFulledRows();
-            };
+            FigureFallen += OnFigureFallen;
         }
 
         public void AddFigure(TetrisFigure figure)
@@ -133,13 +134,13 @@ namespace Tetris.Ui.UiElements
 
         public bool CanFigureMoveDown(TetrisFigure figure)
         {
-            if (figure.Ceils.Where(ceil => ceil.Row == RowCount - 1).Any())
+            if (figure.Ceils.Any(ceil => ceil.Row == RowCount - 1))
                 return false;
 
             foreach (var ceil in figure.Ceils)
             {
                 if (AllFigureCeils.Any(c => c.IsInSameColumn(ceil) &&
-                                   c.IsOnPrevRow(ceil)))
+                                            c.IsOnPrevRow(ceil)))
                     return false;
             }
 
@@ -157,34 +158,35 @@ namespace Tetris.Ui.UiElements
                 figure.MoveTo(move);
         }
 
-        private void AddCeils(IEnumerable<Ceil> ceils, int zIndex = 1)
+        public void RotateFigureRight(TetrisFigure figure)
         {
-            foreach (var ceil in ceils)
-            {
-                SetColumn(ceil, ceil.Column);
-                SetRow(ceil, ceil.Row);
-                SetZIndex(ceil, zIndex);
-                Children.Add(ceil);
-            }
-        }
+            var matrix = new Matrix(4);
 
-        private void RemoveFulledRows()
-        {
-            var fulledRows = GetFulledRows();
-            foreach (var ceil in AllFigureCeils)
+            var topRow = figure.GetTopRow();
+            var leftColumn = figure.GetLeftColumn();
+            foreach (var ceil in figure.Ceils)
+                matrix[ceil.Row - topRow, ceil.Column - leftColumn] = 1;
+
+            matrix.RotateClockwise();
+
+            var ceils = new List<Ceil>(figure.Ceils);
+            for (int row = 0; row < 4; row++)
             {
-                if (fulledRows.Contains(ceil.Row))
+                for (int column = 0; column < 4; column++)
                 {
-                    var figure = FindFigureByCeil(ceil);
-                    figure.RemoveCeil(ceil);
-                    Children.Remove(ceil);
+                    if (matrix[row, column] == 1)
+                    {
+                        var ceil = ceils.First();
+                        ceil.Row = row + topRow;
+                        ceil.Column = column + leftColumn - 2;
+                        ceils.Remove(ceil);
+                    }
                 }
             }
         }
 
-        private List<int> GetFulledRows()
+        private List<int> GetFilledRows()
         {
-            var fulledRows = new List<int>();
             var ceilsPerRows = new Dictionary<int, int>();
             foreach (var ceil in AllFigureCeils)
             {
@@ -195,13 +197,14 @@ namespace Tetris.Ui.UiElements
                     ceilsPerRows[row] = 1;
             }
 
+            var filledRows = new List<int>();
             foreach (var row in ceilsPerRows.Keys)
             {
                 if (ceilsPerRows[row] == ColumnCount)
-                    fulledRows.Add(row);
+                    filledRows.Add(row);
             }
 
-            return fulledRows;
+            return filledRows;
         }
 
         private TetrisFigure FindFigureByCeil(Ceil ceil)
@@ -215,13 +218,41 @@ namespace Tetris.Ui.UiElements
             throw new CeilNotFoundException(ceil);
         }
 
+        private void AddCeils(IEnumerable<Ceil> ceils, int zIndex = 1)
+        {
+            foreach (var ceil in ceils)
+            {
+                SetColumn(ceil, ceil.Column);
+                SetRow(ceil, ceil.Row);
+                SetZIndex(ceil, zIndex);
+                Children.Add(ceil);
+            }
+        }
+
+        private void ClearFulledRows()
+        {
+            var fulledRows = GetFilledRows();
+            foreach (var ceil in AllFigureCeils)
+            {
+                if (fulledRows.Contains(ceil.Row))
+                {
+                    var figure = FindFigureByCeil(ceil);
+                    figure.RemoveCeil(ceil);
+                    Children.Remove(ceil);
+                }
+            }
+        }
+
         private void RemoveEmptyFigures()
         {
+            var emptyFigures = new List<TetrisFigure>();
             foreach (var figure in fallenFigures)
             {
                 if (figure.Ceils.Count() == 0)
-                    fallenFigures.Remove(figure);
+                    emptyFigures.Add(figure);
             }
+
+            fallenFigures.RemoveRange(emptyFigures);
         }
 
         private void MoveFallingFigure()
@@ -234,6 +265,29 @@ namespace Tetris.Ui.UiElements
             {
                 fallenFigures.Add(fallingFigure);
                 FigureFallen.Invoke();
+            }
+        }
+
+        private void OnFigureFallen()
+        {
+            var filledRows = GetFilledRows();
+
+            ClearFulledRows();
+            RemoveEmptyFigures();
+
+            if (filledRows.Count() > 0)
+            {
+                var needLowerRows = rows.Where(r => r < filledRows.Max()).ToList();
+                LowerRows(needLowerRows, filledRows.Count());
+            }
+        }
+
+        private void LowerRows(List<int> rows, int amount)
+        {
+            foreach (var ceil in AllFigureCeils)
+            {
+                if (rows.Contains(ceil.Row))
+                    ceil.Row += amount;
             }
         }
 
