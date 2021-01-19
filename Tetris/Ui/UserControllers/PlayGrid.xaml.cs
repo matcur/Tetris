@@ -45,7 +45,7 @@ namespace Tetris.Ui.UserControllers
 
         private TetrisFigure nextFigure;
 
-        private Timer timer = new Timer(100);
+        private Timer gameLoop = new Timer(100);
 
         public PlayGrid()
         {
@@ -60,22 +60,28 @@ namespace Tetris.Ui.UserControllers
             {
                 NextFigure = TetrisFigure.CreateRandom();
             };
-            timer.Elapsed += delegate
+            TetrisGrid.GameLost += delegate
             {
-                Dispatcher.Invoke(() => TetrisGrid.ToNextTick());
+                Stop();
+                MessageBox.Show("You lost");
+            };
+
+            gameLoop.Elapsed += delegate
+            {
+                Dispatcher.Invoke(() => TetrisGrid.Update());
             };
         }
 
         public void Start()
         {
-            timer.Enabled = true;
+            gameLoop.Enabled = true;
 
             Dispatcher.Invoke(() => TetrisGrid.AddFigure(NextFigure));
         }
 
         public void Stop()
         {
-            timer.Enabled = false;
+            gameLoop.Enabled = false;
         }
 
         public void Refresh()

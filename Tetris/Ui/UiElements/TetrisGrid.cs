@@ -14,9 +14,11 @@ namespace Tetris.Ui.UiElements
 {
     public class TetrisGrid : Grid
     {
-        public event Action FigureFallen = delegate { };
+        public event Action<TetrisFigure> FigureFallen = delegate { };
 
         public event Action FigureAdded = delegate { };
+
+        public event Action GameLost = delegate { };
 
         public IReadOnlyDictionary<TetrisFigureMove, Predicate<TetrisFigure>> PossibleFigureMoves
         {
@@ -67,12 +69,20 @@ namespace Tetris.Ui.UiElements
             FigureAdded.Invoke();
         }
 
-        public void ToNextTick()
+        public void Update()
         {
             if (fallingFigure == null)
                 throw new Exception("Add figure.");
 
-            MoveFallingFigure();
+            if (CanFigureMoveDown(fallingFigure))
+            {
+                fallingFigure.MoveDown();
+            }
+            else
+            {
+                fallenFigures.Add(fallingFigure);
+                FigureFallen.Invoke(fallingFigure);
+            }
             RedrawFigures();
         }
 
@@ -229,12 +239,11 @@ namespace Tetris.Ui.UiElements
             }
         }
 
-        private void ClearFulledRows()
+        private void ClearRows(List<int> rows)
         {
-            var fulledRows = GetFilledRows();
             foreach (var ceil in AllFigureCeils)
             {
-                if (fulledRows.Contains(ceil.Row))
+                if (rows.Contains(ceil.Row))
                 {
                     var figure = FindFigureByCeil(ceil);
                     figure.RemoveCeil(ceil);
@@ -255,30 +264,22 @@ namespace Tetris.Ui.UiElements
             fallenFigures.RemoveRange(emptyFigures);
         }
 
-        private void MoveFallingFigure()
-        {
-            if (CanFigureMoveDown(fallingFigure))
-            {
-                fallingFigure.MoveDown();
-            }
-            else
-            {
-                fallenFigures.Add(fallingFigure);
-                FigureFallen.Invoke();
-            }
-        }
-
-        private void OnFigureFallen()
+        private void OnFigureFallen(TetrisFigure figure)
         {
             var filledRows = GetFilledRows();
 
-            ClearFulledRows();
+            ClearRows(filledRows);
             RemoveEmptyFigures();
 
             if (filledRows.Count() > 0)
             {
                 var needLowerRows = rows.Where(r => r < filledRows.Max()).ToList();
                 LowerRows(needLowerRows, filledRows.Count());
+            }
+
+            if (figure.Ceils.Any(c => c.Row == 0))
+            {
+                GameLost.Invoke();
             }
         }
 
